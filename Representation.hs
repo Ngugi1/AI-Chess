@@ -173,7 +173,6 @@ initialState color background screen center whitepawnpic blackpawnpic whitepics 
                                           (translateToOriginY +  (cellSize * fromIntegral (fst (getPiecePosition piece))))
                                            (getPiecePicture piece))
                                            boardpieces
-
 -- -- Load picture
 loadPictures::[String] -> IO [Picture]
 loadPictures names = do
