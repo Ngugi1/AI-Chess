@@ -33,6 +33,17 @@
   (major1) == 1 && (major2) == 13 && (minor) <= 1)
 #endif /* MIN_VERSION_gloss */
 
+/* package regex-posix-0.96.0.0 */
+#ifndef VERSION_regex_posix
+#define VERSION_regex_posix "0.96.0.0"
+#endif /* VERSION_regex_posix */
+#ifndef MIN_VERSION_regex_posix
+#define MIN_VERSION_regex_posix(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  96 || \
+  (major1) == 0 && (major2) == 96 && (minor) <= 0)
+#endif /* MIN_VERSION_regex_posix */
+
 /* tool gcc-4.2.1 */
 #ifndef TOOL_VERSION_gcc
 #define TOOL_VERSION_gcc "4.2.1"

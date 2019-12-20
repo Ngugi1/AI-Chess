@@ -1,59 +1,26 @@
 module Main where
+import qualified Representation as Rep
+import qualified GameStep as GStep
 import Graphics.Gloss
-import Graphics.Gloss.Interface.IO.Interact
-import Graphics.Gloss.Data.ViewPort
-
-window:: Display
-window = InWindow "AI-Human Chess" (800, 800) (400, 400)
-
-backgroundColor:: Color
-backgroundColor = white
-
--- Player
-type Player = String
-
--- Position
-type Position = (Float, Float)
-
--- Piece
-data Piece = Piece {name:: Char, position:: Position, moved:: Bool, player:: Player}
-
--- Rank 
-type Rank = [Piece]
-
--- Rank Number
-type RankNumber = Int
-
--- Background
-type Background = String
--- Board
-type Board = (Picture, (RankNumber, [Rank]))
-
--- Make a rank
--- makeRank:: Int -> Rank
--- makeRank position
---     | even position = 
---     | otherwise = 
-
--- Make the initial board
--- initialBoard :: Board
--- initialBoard = 
-
-gameAsPicture:: Board -> Picture
-gameAsPicture state = pictures [fst state]
-
-getBackgroundImage:: IO Picture
-getBackgroundImage = loadBMP "chess.bmp"
-
-transformGame:: Event -> Board -> Board
-transformGame (EventResize _ ) board = board
-transformGame _ board = board
-
-updateGame :: Float -> Board -> Board
-updateGame _ board = board
+import Graphics.Gloss.Interface.Environment
 
 main:: IO ()
 main =
     do
-       img <- getBackgroundImage
-       play window backgroundColor 30 (img, (0,[])) gameAsPicture transformGame updateGame
+    -- Assume the human player chose white color
+    let humanPieceColor = "black"
+    -- Get the screen dimensions
+    (width, height) <- getScreenSize
+    let screen = Rep.Screen width height
+    -- Frames per second
+    let framesPerSecond = 30
+    background <- loadBMP "./assets/chess.bmp"
+    whitePawn <- loadBMP "./assets/wP.bmp"
+    blackPawn <- loadBMP "./assets/bP.bmp"
+    whitepics <- Rep.loadPictures $ Rep.whitePieceNames
+    blackpics <- Rep.loadPictures $ Rep.blackPieceNames
+    let state = Rep.initialState 
+                        humanPieceColor background screen 
+                        (Rep.getScreenCenter screen) whitePawn 
+                        blackPawn whitepics blackpics
+    play Rep.window white framesPerSecond state GStep.gameAsPicture GStep.transformGame GStep.updateGame
