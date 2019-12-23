@@ -2,7 +2,7 @@ module Validation where
 import Representation as Rep
 import Text.Regex.Posix
 import Graphics.Gloss
-
+import Debug.Trace
 -- checkValidPosition
 checkValidPosition:: Rep.Position -> Bool
 checkValidPosition (rank, file) = rank >= 0 && rank < 8 && file >= 0 && file < 8
@@ -12,27 +12,28 @@ removePiece position pieces =
   replacePiece position (noPiece,position, noplayer, True, blank) pieces
 -- Place a piece or replace at the position with the new piece 
 replacePiece:: Rep.Position -> Rep.Piece -> (Rep.Rank, [Rep.Piece]) -> (Rep.Rank, [Rep.Piece])
-replacePiece (rank, file) (pname,_,player,_,img) (rn, pieces) =
+replacePiece (rank, file) (new_pname,_,new_player,_,new_piece_img) (rn, pieces) =
   (rn, map filterPiece pieces)
-  where filterPiece (n,(r, f),p,m,_) = 
-         if (rank == r && f == file)
-         then (pname, (rank,file),player,True,img)
-         else (n,(r, f),p,m, img)
+  where filterPiece (pname,(rrank, ffile),pplayer,mmoved,iimage) = 
+         if (rank == rrank && ffile == file)
+         then (new_pname, (rank,file),new_player,True,new_piece_img)
+         else (pname,(rrank, ffile),pplayer,mmoved, iimage)
 -- Make a move
 makeMove:: Rep.State -> Rep.Piece -> Rep.To -> Rep.State
 makeMove state (name, position@(rank,file), player, moved, img) to =
-   State (background state)
-         (origin state)
-         (previousSelection state)
-         (offset state)
-         boardImages
-         (otherPlayer player)
-         (center state)
-         newboard
-         where newimage = translate ((x_origin (origin state)) + (cellSize * fromIntegral (fst to))) ((y_origin (origin state)) + (cellSize * fromIntegral (snd to))) img
-               newboard = (map (replacePiece to (name, to, player, True, newimage)) (map (removePiece position) (board state)))
-               boardpieces =  concat $ map (\(rNo, rankPieces) -> rankPieces) newboard
-               boardImages = [(background state)] ++  map (\piece -> (getPiecePicture piece)) boardpieces
+  trace (show (length boardImages))
+  State (background state) (origin state)  ((-1),(-1)) (offset state)
+        boardImages (otherPlayer player) (center state) newboard
+  where newboard = (map (replacePiece to (name, to, player, True, img)) (map (removePiece position) (board state)))
+        boardpieces =  concat $ map (\(rNo, rankPieces) -> rankPieces) newboard
+        boardOrigin = Rep.origin state
+        origin_x = (Rep.x_origin boardOrigin)
+        origin_y = (Rep.y_origin boardOrigin)
+        -- boardImages = [Rep.background state] ++  (map (\piece -> (getPiecePicture piece)) boardpieces)
+        boardImages = [Rep.background state] ++  (map (\piece -> translate (origin_x + (cellSize * fromIntegral (snd (getPiecePosition piece))))
+                                          (origin_y +  (cellSize * fromIntegral (fst (getPiecePosition piece))))
+                                           (getPiecePicture piece))
+                                           boardpieces)
 
 -- Valid moves - dispatch based on the piece 
 validMove:: Rep.State -> Rep.Piece -> Rep.Move -> Rep.Player -> Bool 
@@ -49,6 +50,7 @@ validMove state piece move player
 validMoveKing :: Rep.State -> Rep.Piece -> Rep.Move -> Rep.Player -> Bool
 validMoveKing state piece move player
  | (checkKingMove state move player) || kingSideCast || queenSideCast = True
+ | otherwise = False
  where currentBoard = board state
        (kingSideCast, ksRook) = kingSideCastling currentBoard move piece player
        (queenSideCast, qsRook) = queenSideCastling currentBoard move piece player

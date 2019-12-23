@@ -145,11 +145,8 @@ makeRank "black" rank whitePics blackPics whitePawnPic blackPawnPic
 -- This function takes the color chosen by the human player and generates the 8 ranks
 initialState::  PlayerColor -> Picture -> Screen -> Center  -> Picture -> Picture -> [Picture] -> [Picture]  -> State
 initialState color background screen center whitepawnpic blackpawnpic whitepics blackpics  =
-    trace (show originCenterX ++ " " ++ show originCenterY) 
-    trace (show boardCenterX ++ " " ++ show boardCenterY) 
-    trace (show (boardCenterX - originCenterX) ++ " " ++ show (boardCenterY - originCenterY)) 
     State background 
-          (Origin drawingOriginCenterX drawingOriginCenterY)
+          (Origin translateToOriginX translateToOriginY)
           ((-1), (-1))
           (Offset boardOffsetX boardOffsetY)
           boardImages
@@ -173,6 +170,8 @@ initialState color background screen center whitepawnpic blackpawnpic whitepics 
                                           (translateToOriginY +  (cellSize * fromIntegral (fst (getPiecePosition piece))))
                                            (getPiecePicture piece))
                                            boardpieces
+
+
 -- -- Load picture
 loadPictures::[String] -> IO [Picture]
 loadPictures names = do
