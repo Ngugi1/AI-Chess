@@ -16,9 +16,9 @@ data Offset = Offset {x_offset:: Float, y_offset:: Float}
 data Center = Center{x_axis:: Int, y_axis::Int}
 -- Screen dimensions
 data Screen = Screen {width:: Int, height::Int}
-type PlayerColor = String
+data PlayerColor = White | Black
 -- Player
-type Player = String
+data Player = Robot {color:: String} | Human {color:: String} | Unknown deriving (Eq, Show)
 -- Piece Name
 type PieceName = String
 -- Has the piece moved
@@ -43,7 +43,10 @@ piecePlayer :: Piece -> Player
 piecePlayer (_,_,p,_,_) = p
 -- Does a piece belong to a given player? 
 playerOwns::Player -> Piece  -> Bool
-playerOwns player (p,_,owner,_,_)  = owner == player
+playerOwns (Human player) (p,_,(Human hplayer),_,_)  = True
+playerOwns (Robot player) (p,_,(Robot rplayer),_,_)  = True
+playerOwns _ _ = False
+
 -- A rank 
 type Rank = Int
 -- A board is an arrangement of list of pieces in ranks (8 ranks)
@@ -63,6 +66,11 @@ data State = State {
                     board::  Board}
 -- Steps moved by a piece
 type Step = (Int, Int)
+
+-- Get player pieces
+getPlayerPieces :: Board -> Player -> [Piece]
+getPlayerPieces board player = flatBoard
+  where flatBoard = filter (playerOwns player) (concat (map (\(rank, pieces) -> pieces) board))
 
 -- Chess Pieces 
 pawn (p,_,_,_, _) = p == "bP" || p == "wP"
@@ -89,10 +97,11 @@ blackPlayer = "black"
 -- No player means that a position belongs to no player 
 noplayer = "_"
 -- Find out the your opponent
-otherPlayer::String -> String
-otherPlayer player
- | player == blackPlayer = whitePlayer
- | otherwise = blackPlayer
+otherPlayer::Player -> Player
+otherPlayer (Human "black") = Robot "white"
+otherPlayer (Human "white") = Robot "black"
+otherPlayer (Robot "black") = Human "white"
+otherPlayer (Robot "white") = Human "black"
 
 
 getScreenCenter :: Screen -> Center
@@ -110,11 +119,11 @@ cellSize = 80
 backgroundColor:: Color
 backgroundColor = white
 
--- Get the other color
-otherColor::PlayerColor -> PlayerColor
-otherColor color
- | color == "white" = "black"
- | otherwise = "white"
+-- -- Get the other color
+-- otherColor::PlayerColor -> PlayerColor
+-- otherColor color
+--  | color == "white" = "black"
+--  | otherwise = "white"
 
 -- Game pieces
 whitePieceNames = ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]
@@ -127,20 +136,23 @@ emptyPieces = replicate 8 noPiece
 
 
 makeRank:: PlayerColor -> Int -> [Picture] -> [Picture] -> Picture -> Picture -> (Rank, [Piece])
-makeRank "white" rank whitePics blackPics whitePawnPic blackPawnPic
-    | rank == 0 = (0 , (DL.zip5 whitePieceNames (zip [0,0..] [0..7]) (replicate 8 whitePlayer) (replicate 8 False) whitePics))
-    | rank == 1 = (1, (DL.zip5 (replicate 8 whitePawnName) (zip [1,1..] [0..7])   (replicate 8 whitePlayer) (replicate 8 False) (replicate 8 whitePawnPic)))
-    | rank == 6 = (6, (DL.zip5 (replicate 8 blackPawnName) (zip [6,6..] [0..7])  (replicate 8 blackPlayer) (replicate 8 False) (replicate 8 blackPawnPic)))
-    | rank == 7 = (7, (DL.zip5 blackPieceNames (zip [7,7..] [0..7]) (replicate 8 blackPlayer) (replicate 8 False) blackPics))
-    | otherwise = (rank, (DL.zip5 emptyPieces (zip [rank,rank..] [0..7]) (replicate 8 noplayer) (replicate 8 False) (replicate 8 blank)))
+makeRank White rank whitePics blackPics whitePawnPic blackPawnPic
+    | rank == 0 = 
+        trace "White Rank"
+        (0 , (DL.zip5 whitePieceNames (zip [0,0..] [0..7]) (replicate 8 (Human whitePlayer)) (replicate 8 False) whitePics))
+    | rank == 1 = (1, (DL.zip5 (replicate 8 whitePawnName) (zip [1,1..] [0..7])   (replicate 8 (Human whitePlayer)) (replicate 8 False) (replicate 8 whitePawnPic)))
+    | rank == 6 = (6, (DL.zip5 (replicate 8 blackPawnName) (zip [6,6..] [0..7])  (replicate 8 (Robot blackPlayer)) (replicate 8 False) (replicate 8 blackPawnPic)))
+    | rank == 7 = (7, (DL.zip5 blackPieceNames (zip [7,7..] [0..7]) (replicate 8 (Robot blackPlayer)) (replicate 8 False) blackPics))
+    | otherwise = (rank, (DL.zip5 emptyPieces (zip [rank,rank..] [0..7]) (replicate 8 Unknown) (replicate 8 False) (replicate 8 blank)))
 
-makeRank "black" rank whitePics blackPics whitePawnPic blackPawnPic 
-    | rank == 0 = ( 0,  (DL.zip5 blackPieceNames  (zip [0,0..] [0..7]) (replicate 8 blackPlayer) (replicate 8 False) blackPics))
-    | rank == 1 = ( 1,  (DL.zip5 (replicate 8 blackPawnName) (zip [1,1..] [0..7])   (replicate 8 blackPlayer) (replicate 8 False) (replicate 8 blackPawnPic)))
-    | rank == 6 = ( 6,  (DL.zip5 (replicate 8 whitePawnName) (zip [6,6..] [0..7])  (replicate 8 whitePlayer) (replicate 8 False) (replicate 8 whitePawnPic)))
-    | rank == 7 = ( 7,  (DL.zip5 whitePieceNames (zip [7,7..] [0..7]) (replicate 8 whitePlayer) (replicate 8 False) whitePics))
-    | otherwise = (rank,  (DL.zip5 emptyPieces (zip [rank,rank..] [0..7]) (replicate 8 noplayer) (replicate 8 False) (replicate 8 blank)))
-
+makeRank Black rank whitePics blackPics whitePawnPic blackPawnPic 
+    | rank == 0 = 
+        trace "Black Rank"
+        ( 0,  (DL.zip5 blackPieceNames  (zip [0,0..] [0..7]) (replicate 8 (Human blackPlayer)) (replicate 8 False) blackPics))
+    | rank == 1 = ( 1,  (DL.zip5 (replicate 8 blackPawnName) (zip [1,1..] [0..7])   (replicate 8 (Human blackPlayer)) (replicate 8 False) (replicate 8 blackPawnPic)))
+    | rank == 6 = ( 6,  (DL.zip5 (replicate 8 whitePawnName) (zip [6,6..] [0..7])  (replicate 8 (Robot whitePlayer)) (replicate 8 False) (replicate 8 whitePawnPic)))
+    | rank == 7 = ( 7,  (DL.zip5 whitePieceNames (zip [7,7..] [0..7]) (replicate 8 (Robot whitePlayer)) (replicate 8 False) whitePics))
+    | otherwise = (rank,  (DL.zip5 emptyPieces (zip [rank,rank..] [0..7]) (replicate 8 Unknown) (replicate 8 False) (replicate 8 blank)))
 -- The first rank will always face the human player and the last rank always on the AI side
 -- This function takes the color chosen by the human player and generates the 8 ranks
 initialState::  PlayerColor -> Picture -> Screen -> Center  -> Picture -> Picture -> [Picture] -> [Picture]  -> State
@@ -150,7 +162,7 @@ initialState color background screen center whitepawnpic blackpawnpic whitepics 
           ((-1), (-1))
           (Offset boardOffsetX boardOffsetY)
           boardImages
-          blackPlayer
+          (Human blackPlayer)
           center
           boardRanks
     where

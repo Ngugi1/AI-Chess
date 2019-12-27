@@ -8,7 +8,7 @@ main:: IO ()
 main =
     do
     -- Assume the human player chose white color
-    let humanPieceColor = "black"
+    let humanPieceColor = Rep.White
     -- Get the screen dimensions
     (width, height) <- getScreenSize
     let screen = Rep.Screen width height

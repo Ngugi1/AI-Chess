@@ -18,7 +18,7 @@ extra-source-files:  CHANGELOG.md
 
 executable Chess-AI
   main-is:             Main.hs
-  other-modules: Representation, GameStep, Validation
+  other-modules: Representation, GameStep, Validation, AI
   -- other-extensions:
   build-depends:       base >=4.12 && <4.13, gloss, regex-posix
   -- hs-source-dirs:
