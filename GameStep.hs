@@ -21,12 +21,12 @@ transformGame (EventKey (MouseButton LeftButton) Down _ (x,  y)) state
      trace ("Player owns current " ++ show currentPlayerOwnsCurrentPosition)
      trace ("Player owns previous " ++ show currentPlayerOwnsPreviousPosition)
      trace "+++++++++++++++++++++++++++++++++++++++++++++++++"
-     AI.playAI (Validation.makeMove state pieceToMove (rank, file)) 0
+     AI.playAI (Validation.makeMove state pieceToMove (rank, file)) 3
     --  (Validation.makeMove state pieceToMove (rank, file))
 
         -- state
     -- Reset the previous step if the player had clicked outside the valid region
-    | (currentPositionValid  && previousPositionValid == False) =
+    | currentPositionValid  || previousPositionValid == False =
     --  trace (show $ (Validation.forwardMove (previousPosition, (rank, file))))
     --  trace ("Is move legal ? " ++ show legalMove)
      trace ("Is current position valid? " ++ show ((rank, file) ,currentPositionValid))
@@ -36,7 +36,7 @@ transformGame (EventKey (MouseButton LeftButton) Down _ (x,  y)) state
      trace "----------------------------"
      newState
     -- We don't know what the player is doing - ignore the clicks
-    | otherwise = 
+    | otherwise =
      trace ("Is move legal ? " ++ show legalMove)
      trace ("Is current position valid? " ++ show  ((rank, file) ,currentPositionValid))
      trace ("Is current previous valid? " ++ show (previousPosition, previousPositionValid))

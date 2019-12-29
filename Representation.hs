@@ -9,13 +9,13 @@ import Control.Monad (forM)
 
 -- Chess assets borrowed from :: https://github.com/madnight/chessboard.git
 -- Origin 
-data Origin = Origin {x_origin:: Float, y_origin:: Float}
+data Origin = Origin {x_origin:: Float, y_origin:: Float}deriving (Show)
 -- Offset 
-data Offset = Offset {x_offset:: Float, y_offset:: Float}
+data Offset = Offset {x_offset:: Float, y_offset:: Float} deriving (Show)
 -- Center
-data Center = Center{x_axis:: Int, y_axis::Int}
+data Center = Center{x_axis:: Int, y_axis::Int} deriving (Show)
 -- Screen dimensions
-data Screen = Screen {width:: Int, height::Int}
+data Screen = Screen {width:: Int, height::Int} deriving (Show)
 data PlayerColor = White | Black
 -- Player
 data Player = Robot {color:: String} | Human {color:: String} | Unknown deriving (Eq, Show)
@@ -32,7 +32,7 @@ type Move = (From, To)
 -- Position
 -- data Position = Position {rank:: Int, file::Int} deriving(Show)
 type Position = (Int, Int)
--- Piece
+
 -- data Piece = Piece {name:: String, position:: Position, moved:: Bool, player:: Player, image:: Picture} deriving (Show)
 type Piece = (PieceName, Position, Player, Moved, Picture)
 -- Is this the first time the piece is moved?
@@ -63,7 +63,7 @@ data State = State {
                     images :: [Picture],
                     player:: Player,
                     center::Center,
-                    board::  Board}
+                    board::  Board} deriving (Show)
 -- Steps moved by a piece
 type Step = (Int, Int)
 

@@ -21,7 +21,7 @@ replacePiece (rank, file) (new_pname,_,new_player,_,new_piece_img) (rn, pieces) 
 -- Make a move
 makeMove:: Rep.State -> Rep.Piece -> Rep.To -> Rep.State
 makeMove state (name, position@(rank,file), player, moved, img) to =
-  trace (show (length boardImages))
+  -- trace (show (length boardImages))
   State (background state) (origin state)  ((-1),(-1)) (offset state)
         boardImages (otherPlayer player) (center state) newboard
   where newboard = (map (replacePiece to (name, to, player, True, img)) (map (removePiece position) (board state)))
