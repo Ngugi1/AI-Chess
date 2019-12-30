@@ -2,13 +2,14 @@ module Main where
 import qualified Representation as Rep
 import qualified GameStep as GStep
 import Graphics.Gloss
+import Graphics.Gloss.Interface.IO.Game
 import Graphics.Gloss.Interface.Environment
 
 main:: IO ()
 main =
     do
     -- Assume the human player chose white color
-    let humanPieceColor = Rep.White
+    let humanPieceColor = Rep.Black
     -- Get the screen dimensions
     (width, height) <- getScreenSize
     let screen = Rep.Screen width height
@@ -19,8 +20,8 @@ main =
     blackPawn <- loadBMP "./assets/bP.bmp"
     whitepics <- Rep.loadPictures $ Rep.whitePieceNames
     blackpics <- Rep.loadPictures $ Rep.blackPieceNames
-    let state = Rep.initialState 
+    let state = Rep.initialState
                         humanPieceColor background screen 
                         (Rep.getScreenCenter screen) whitePawn 
                         blackPawn whitepics blackpics
-    play Rep.window white framesPerSecond state GStep.gameAsPicture GStep.transformGame GStep.updateGame
+    playIO Rep.window white framesPerSecond state GStep.gameAsPicture GStep.transformGame GStep.updateGame

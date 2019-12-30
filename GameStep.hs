@@ -7,46 +7,25 @@ import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Interact
 import Debug.Trace
 
-gameAsPicture:: Rep.State -> Picture
-gameAsPicture state =  pictures $ Rep.images state
+gameAsPicture:: Rep.State -> IO Picture
+gameAsPicture state =  return $ pictures $ Rep.images state
 
 -- Transform game when you see LeftButton mouse clicks
-transformGame:: Event -> Rep.State -> Rep.State
+transformGame:: Event -> Rep.State -> IO Rep.State
 transformGame (EventKey (MouseButton LeftButton) Down _ (x,  y)) state
     -- If the player tries to move his own piece to a position he/she doesn't already occupy and the move is legal - make move
     | previousPositionValid && currentPositionValid && currentPlayerOwnsPreviousPosition && currentPlayerOwnsCurrentPosition == False && legalMove =
-     trace ("Is move legal ? " ++ show legalMove)
-     trace ("Is current position valid? " ++ show  ((rank, file) ,currentPositionValid))
-     trace ("Is current previous valid? " ++ show  (previousPosition, previousPositionValid))
-     trace ("Player owns current " ++ show currentPlayerOwnsCurrentPosition)
-     trace ("Player owns previous " ++ show currentPlayerOwnsPreviousPosition)
-     trace "+++++++++++++++++++++++++++++++++++++++++++++++++"
-     AI.playAI (Validation.makeMove state pieceToMove (rank, file)) 3
-    --  (Validation.makeMove state pieceToMove (rank, file))
-
-        -- state
+     let result = AI.playAI (Validation.makeMove state pieceToMove (rank, file)) 3 ((Rep.getPiecePosition pieceToMove), (rank,file)) in
+        -- trace (show $ (previousPosition, (file, rank)))
+         case result of
+             (Right  updated_state) -> return $ updated_state
+             (Left message) -> return $ state -- TODO:: Display end game here
     -- Reset the previous step if the player had clicked outside the valid region
     | currentPositionValid  || previousPositionValid == False =
-    --  trace (show $ (Validation.forwardMove (previousPosition, (rank, file))))
-    --  trace ("Is move legal ? " ++ show legalMove)
-     trace ("Is current position valid? " ++ show ((rank, file) ,currentPositionValid))
-     trace ("Is current previous valid? " ++ show (previousPosition, previousPositionValid))
-     trace ("Player owns current " ++ show currentPlayerOwnsCurrentPosition)
-    --  trace ("Player owns previous " ++ show currentPlayerOwnsPreviousPosition)
-     trace "----------------------------"
-     newState
+     return $ newState
     -- We don't know what the player is doing - ignore the clicks
     | otherwise =
-     trace ("Is move legal ? " ++ show legalMove)
-     trace ("Is current position valid? " ++ show  ((rank, file) ,currentPositionValid))
-     trace ("Is current previous valid? " ++ show (previousPosition, previousPositionValid))
-     trace ("Player owns current " ++ show currentPlayerOwnsCurrentPosition)
-     trace ("Piece " ++ show (Rep.getPieceOnBoard (Rep.board state) (rank, file)))
-     trace "##################################"
-
-
-        -- trace (show $ (Validation.forwardMove (previousPosition, (rank, file))))
-     state
+     return $ state
     where
         rank = (coordinateToPosition y)
         file = (coordinateToPosition x)
@@ -60,10 +39,10 @@ transformGame (EventKey (MouseButton LeftButton) Down _ (x,  y)) state
         newState = Rep.State (Rep.background state) (Rep.origin state) (rank, file) (Rep.offset state) (Rep.images state) (Rep.player state) (Rep.center state) (Rep.board state)
 
 -- Ignore all other events
-transformGame _ state = state
+transformGame _ state = return $ state
 
-updateGame :: Float -> Rep.State -> Rep.State
-updateGame _ state = state
+updateGame :: Float -> Rep.State -> IO Rep.State
+updateGame _ state = return $ state
 
 
 -- Convert coordinate to a rank and file

@@ -36,8 +36,17 @@ makeMove state (name, position@(rank,file), player, moved, img) to =
 
 -- check if a player is in a stalemate
 checkStalemate :: Rep.State -> Rep.Player -> Bool
-checkStalemate state player = (length (map (hasValidMoves state player) playerPieces)) == 0
+checkStalemate state player = ((length (map (hasValidMoves state player) playerPieces)) == 0) && kingNotThreatened
  where playerPieces = Rep.getPlayerPieces (Rep.board state) player
+       kingNotThreatened = not (kingUnderThreat state (Rep.player state))
+
+-- Did a move result into a player being in check? It is the case if player's king is under threat and no legal moves left
+checkForCheckers :: Rep.State -> Rep.Player -> Bool
+checkForCheckers state player 
+ | (kingUnderThreat state player) && noLegalMoves = True
+ | otherwise = False
+ where playerPieces = Rep.getPlayerPieces (Rep.board state) player
+       noLegalMoves = ((length (map (hasValidMoves state player) playerPieces)) == 0)
 
 -- Has valid moves
 hasValidMoves:: Rep.State -> Rep.Player -> Rep.Piece -> Bool
@@ -104,7 +113,6 @@ queenSideRobotRook = (7,0) -- Original position
 queenSideHumanRook = (0,0)
 
 -- Check if the King castled
--- TODO:: Fix player equality
 kingSideCastling:: Rep.Board -> Rep.Move -> Rep.Piece -> Rep.Player -> (Bool, Rep.Piece)
 kingSideCastling board move piece (Rep.Robot player)
  | (snd (snd move)) > 3  && not (hasPieceMoved piece) && 
@@ -115,8 +123,7 @@ kingSideCastling board move piece (Rep.Human player)
  | (snd (snd move)) > 3 && not (hasPieceMoved piece) && rook (getPieceOnBoard board kingSideHumanRook)  
  && not (horizontallyObstructed board (fst move, kingSideHumanRook))  = (True, (getPieceOnBoard board kingSideHumanRook))
 kingSideCastling _ move piece _ = (False, piece)
--- Queen Side castling TODO
--- TODO:: Fix player equality
+-- Queen Side castling 
 queenSideCastling:: Rep.Board -> Rep.Move -> Rep.Piece -> Rep.Player -> (Bool, Rep.Piece)
 queenSideCastling board move piece (Rep.Robot player) 
  | ((snd (snd move)) < 3) && not (hasPieceMoved piece) &&
