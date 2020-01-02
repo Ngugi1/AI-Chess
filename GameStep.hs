@@ -14,12 +14,14 @@ gameAsPicture state =  return $ pictures $ Rep.images state
 transformGame:: Event -> Rep.State -> IO Rep.State
 transformGame (EventKey (MouseButton LeftButton) Down _ (x,  y)) state
     -- If the player tries to move his own piece to a position he/she doesn't already occupy and the move is legal - make move
-    | previousPositionValid && currentPositionValid && currentPlayerOwnsPreviousPosition && currentPlayerOwnsCurrentPosition == False && legalMove =
-     let result = AI.playAI (Validation.makeMove state pieceToMove (rank, file)) 3 ((Rep.getPiecePosition pieceToMove), (rank,file)) in
-        -- trace (show $ (previousPosition, (file, rank)))
-         case result of
-             (Right  updated_state) -> return $ updated_state
-             (Left message) -> return $ state -- TODO:: Display end game here
+    | previousPositionValid && currentPositionValid && 
+      currentPlayerOwnsPreviousPosition &&
+      currentPlayerOwnsCurrentPosition == False && legalMove = do
+     result <- AI.playAI (Validation.makeMove state pieceToMove (rank, file)) 3 ((Rep.getPiecePosition pieceToMove), (rank,file))
+    -- trace (show $ (previousPosition, (file, rank)))
+     case result of
+         (Right  updated_state) -> return $ updated_state
+         (Left message) -> return $ state -- TODO:: Display end game here
     -- Reset the previous step if the player had clicked outside the valid region
     | currentPositionValid  || previousPositionValid == False =
      return $ newState
