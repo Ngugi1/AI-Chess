@@ -21,5 +21,6 @@ executable Chess-AI
   other-modules: Representation, GameStep, Validation, AI
   -- other-extensions:
   build-depends:       base >=4.12 && <4.13, gloss, regex-posix
+  ghc-options: -rtsopts -threaded
   -- hs-source-dirs:
   default-language:    Haskell2010

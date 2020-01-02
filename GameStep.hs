@@ -6,6 +6,7 @@ import qualified Validation
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Interact
 import Debug.Trace
+import System.CPUTime
 
 gameAsPicture:: Rep.State -> IO Picture
 gameAsPicture state =  return $ pictures $ Rep.images state
@@ -17,9 +18,12 @@ transformGame (EventKey (MouseButton LeftButton) Down _ (x,  y)) state
     | previousPositionValid && currentPositionValid && 
       currentPlayerOwnsPreviousPosition &&
       currentPlayerOwnsCurrentPosition == False && legalMove = do
-     result <- AI.playAI (Validation.makeMove state pieceToMove (rank, file)) 3 ((Rep.getPiecePosition pieceToMove), (rank,file))
-    -- trace (show $ (previousPosition, (file, rank)))
-     case result of
+      start <- getCPUTime
+      result <- AI.playAI (Validation.makeMove state pieceToMove (rank, file)) 3 ((Rep.getPiecePosition pieceToMove), (rank,file))
+      end <- getCPUTime
+      traceIO ("Time taken -- " ++ (show $ (fromIntegral (end - start)) / (10^12)))
+      -- trace (show $ (previousPosition, (file, rank)))
+      case result of
          (Right  updated_state) -> return $ updated_state
          (Left message) -> return $ state -- TODO:: Display end game here
     -- Reset the previous step if the player had clicked outside the valid region

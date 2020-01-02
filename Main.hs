@@ -8,6 +8,7 @@ import Graphics.Gloss.Interface.Environment
 main:: IO ()
 main =
     do
+    -- cabal run +RTS -S -N2 -I
     -- Assume the human player chose white color
     let humanPieceColor = Rep.Black
     -- Get the screen dimensions
