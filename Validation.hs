@@ -18,35 +18,83 @@ replacePiece (rank, file) (new_pname,_,new_player,_,new_piece_img) (rn, pieces) 
          if (rank == rrank && ffile == file)
          then (new_pname, (rank,file),new_player,True,new_piece_img)
          else (pname,(rrank, ffile),pplayer,mmoved, iimage)
+
+-- Is a player a robot?
+isRobot:: Rep.Player -> Bool
+isRobot (Rep.Robot _) = True
+isRobot other = False
+
+-- Is human player
+isHuman:: Rep.Player -> Bool
+isHuman (Rep.Human _) = True
+isHuman other = False
+-- Convert Int to file
+intToFile :: Int -> String
+intToFile 0 ="a"
+intToFile 1 = "b"
+intToFile 2 = "c"
+intToFile 3 = "d"
+intToFile 4 = "e"
+intToFile 5 = "f"
+intToFile 6 = "g"
+intToFile 7 = "h"
+intToFile _ = "_"
+
 -- Make a move
 makeMove:: Rep.State -> Rep.Piece -> Rep.To -> Rep.State
-makeMove state (name, position@(rank,file), player, moved, img) to =
-  -- trace (show (length boardImages))
-  State (background state) (origin state)  ((-1),(-1)) (offset state)
-        boardImages (otherPlayer player) (center state) newboard
-  where newboard = (map (replacePiece to (name, to, player, True, img)) (map (removePiece position) (board state)))
+makeMove state piece@(name, position@(rank,file), player, moved, img) to@(toRank, toFile)
+ | kingSideCastle =
+   if kingNotThreatened then makeMove finalState kRook (toRank, toFile - 1) else state
+ | queenSideCastle =
+   if kingNotThreatened then makeMove finalState qRook (toRank, toFile + 1) else state
+ | kingNotThreatened = finalState
+ | otherwise = state
+ where  finalState  = State (background state) (save state) (load state) (origin state)  ((-1),(-1)) (offset state) boardImages (Rep.whiteQueen state) (Rep.blackQueen state) (otherPlayer player) (center state) newHistory newboard
+        kingNotThreatened = not (kingUnderThreat finalState (Rep.player state))
+        currentPlayer = (Rep.player state)
+        currentBoard = (Rep.board state)
+        move = (position, to)
+        newHistory = (Rep.history state)  ++ (moveType piece move state)
+        newboard = (map (replacePiece to (name, to, player, True, img)) (map (removePiece position) (board state)))
         boardpieces =  concat $ map (\(rNo, rankPieces) -> rankPieces) newboard
-        boardOrigin = Rep.origin state
+        boardOrigin = (Rep.origin state)
         origin_x = (Rep.x_origin boardOrigin)
         origin_y = (Rep.y_origin boardOrigin)
-        boardImages = [Rep.background state] ++  (map (\piece -> translate (origin_x + (cellSize * fromIntegral (snd (getPiecePosition piece))))
+        boardImages = [Rep.background state, Rep.save state, Rep.load state] 
+                      ++  (map (\piece -> translate (origin_x + (cellSize * fromIntegral (snd (getPiecePosition piece))))
                                           (origin_y +  (cellSize * fromIntegral (fst (getPiecePosition piece))))
                                            (getPiecePicture piece))
                                            boardpieces)
+        (kingSideCastle, kRook) = kingSideCastling currentBoard move piece currentPlayer
+        (queenSideCastle, qRook) = queenSideCastling currentBoard move piece currentPlayer
 
+-- Determine type of move
+moveType :: Rep.Piece -> Rep.Move -> Rep.State -> String
+moveType piece@(name, position@(rank,file), player, moved, img) move@(from, to@(toRank, toFile)) state
+ | pawn piece && not (isCapture) && not (promotePawn currentPlayer move) = square ++ "empty" -- Record pawn move no promotion
+ | pawn piece && not (isCapture) && (promotePawn currentPlayer move) = square ++ "= Q"
+ | pawn piece && isCapture && not (promotePawn currentPlayer move) = (intToFile file) ++ "x" ++ square ++ "empty"-- capture no promotion
+ | pawn piece && isCapture && (promotePawn currentPlayer move) = (intToFile file) ++ "x" ++ square ++ "= Q" -- Capture and promote
+ | king piece && kingSideCastle = "0-0"
+ | king piece && queenSideCastle = "0-0-0"
+ | isCapture = dis ++ newName ++ "x" ++ square
+ | otherwise = dis ++ newName  ++ square
+ where currentHistory = (Rep.history state) -- Moves made so far
+       square = (intToFile toFile) ++ (show toRank)
+       dis = (intToFile file) ++ (show rank)
+       newName = (drop 1 name)
+       currentBoard = (Rep.board state) -- Board
+       currentPlayer = (Rep.player state) -- Current player
+       other_player = (Rep.otherPlayer player) -- Find the other player
+       destinationPiece = Rep.getPieceOnBoard currentBoard to -- Get piece at the destination
+       isCapture = Rep.playerOwns other_player destinationPiece -- Check if we are capturing a piece
+       kingSideCastle = fst $ kingSideCastling currentBoard move piece currentPlayer
+       queenSideCastle = fst $ queenSideCastling currentBoard move piece currentPlayer
 -- check if a player is in a stalemate
 checkStalemate :: Rep.State -> Rep.Player -> Bool
-checkStalemate state player = ((length (map (hasValidMoves state player) playerPieces)) == 0) && kingNotThreatened
+checkStalemate state player = ((length (map (hasValidMoves state player) playerPieces)) == 0)
  where playerPieces = Rep.getPlayerPieces (Rep.board state) player
-       kingNotThreatened = not (kingUnderThreat state (Rep.player state))
-
--- Did a move result into a player being in check? It is the case if player's king is under threat and no legal moves left
-checkForCheckers :: Rep.State -> Rep.Player -> Bool
-checkForCheckers state player 
- | (kingUnderThreat state player) && noLegalMoves = True
- | otherwise = False
- where playerPieces = Rep.getPlayerPieces (Rep.board state) player
-       noLegalMoves = ((length (map (hasValidMoves state player) playerPieces)) == 0)
+      --  kingNotThreatened = not (kingUnderThreat state (Rep.player state))
 
 -- Has valid moves
 hasValidMoves:: Rep.State -> Rep.Player -> Rep.Piece -> Bool
@@ -61,20 +109,20 @@ hasValidMoves state player piece
 simulateMoves :: Rep.State -> Rep.Piece -> Rep.Position -> Rep.Player -> [Rep.Position] -> Bool
 simulateMoves _ _ _ _ [] = False
 simulateMoves state piece position player (pos:positions)
-  | validMove state piece (position, pos) player =  
+  | validMove state piece (position, pos) player =
     if (kingUnderThreat (makeMove state piece pos) player) then (simulateMoves state piece position player positions) else True
     -- if the move is valid, it must not leave this player's king under attack
   | otherwise = simulateMoves state piece position player positions
 
- -- Valid moves - dispatch based on the piece 
-validMove:: Rep.State -> Rep.Piece -> Rep.Move -> Rep.Player -> Bool 
+ -- Valid moves - dispatch based on the piece
+validMove:: Rep.State -> Rep.Piece -> Rep.Move -> Rep.Player -> Bool
 validMove state piece move player
- | rook piece = checkRookMove state move player -- Do rook  
- | knight piece = checkKnightMove state move player -- Knight
- | bishop piece = checkBishopMove state move player -- Bishop stuff
- | queen piece = checkQueenMove state move player -- Queen stuff
- | king piece && validMoveKing state piece move player = True
- | pawn piece = checkPawnMove state move player
+ | rook piece = checkValidPosition (snd move) && checkRookMove state move player -- Do rook
+ | knight piece = checkValidPosition (snd move) &&  checkKnightMove state move player -- Knight
+ | bishop piece = checkValidPosition (snd move) &&  checkBishopMove state move player -- Bishop stuff
+ | queen piece = checkValidPosition (snd move) &&  checkQueenMove state move player -- Queen stuff
+ | king piece && checkValidPosition (snd move) &&  validMoveKing state piece move player = True
+ | pawn piece = checkValidPosition (snd move) &&  checkPawnMove state move player
  | otherwise = False
 
 -- King conditions are more complex - put them in own function
@@ -112,32 +160,38 @@ kingSideHumanRook = (0,7) -- Original Position - not moved
 queenSideRobotRook = (7,0) -- Original position
 queenSideHumanRook = (0,0)
 
+
+
 -- Check if the King castled
 kingSideCastling:: Rep.Board -> Rep.Move -> Rep.Piece -> Rep.Player -> (Bool, Rep.Piece)
 kingSideCastling board move piece (Rep.Robot player)
- | (snd (snd move)) > 3  && not (hasPieceMoved piece) && 
- rook  (getPieceOnBoard board kingSideRobotRook) && 
+ | stepsMoved move == (0, 2) && not (hasPieceMoved piece) &&
+ rook  (getPieceOnBoard board kingSideRobotRook) &&
  not (horizontallyObstructed board (fst move, kingSideRobotRook)) = (True , (getPieceOnBoard board kingSideRobotRook))
- 
 kingSideCastling board move piece (Rep.Human player)
- | (snd (snd move)) > 3 && not (hasPieceMoved piece) && rook (getPieceOnBoard board kingSideHumanRook)  
+ | stepsMoved move == (0, 2) && not (hasPieceMoved piece) && rook (getPieceOnBoard board kingSideHumanRook)  
  && not (horizontallyObstructed board (fst move, kingSideHumanRook))  = (True, (getPieceOnBoard board kingSideHumanRook))
 kingSideCastling _ move piece _ = (False, piece)
--- Queen Side castling 
+
+-- Queen Side castling
 queenSideCastling:: Rep.Board -> Rep.Move -> Rep.Piece -> Rep.Player -> (Bool, Rep.Piece)
-queenSideCastling board move piece (Rep.Robot player) 
- | ((snd (snd move)) < 3) && not (hasPieceMoved piece) &&
-  rook (getPieceOnBoard board queenSideRobotRook)  && 
+queenSideCastling board move piece (Rep.Robot player)
+ | stepsMoved move == (0, 2) && not (hasPieceMoved piece) &&
+  rook (getPieceOnBoard board queenSideRobotRook)  &&
   not (horizontallyObstructed board (fst move, queenSideRobotRook)) = (True, (getPieceOnBoard board queenSideRobotRook))
-queenSideCastling board move piece (Rep.Human player) 
- | ((snd (snd move)) < 3)  && not (hasPieceMoved piece) &&
-  rook (getPieceOnBoard board queenSideHumanRook) && 
+queenSideCastling board move piece (Rep.Human player)
+ | stepsMoved move == (0, 2)  && not (hasPieceMoved piece) &&
+  rook (getPieceOnBoard board queenSideHumanRook) &&
   not (horizontallyObstructed board (fst move, queenSideHumanRook))  = (True, (getPieceOnBoard board queenSideHumanRook))
 queenSideCastling _ _ piece _ = (False, piece)
-  -- Check if king is under threat - being attacked
+
+-- Check if king is under threat - being attacked
 kingUnderThreat :: Rep.State -> Rep.Player -> Bool
-kingUnderThreat state player = (length (positionUnderAttack state (getPiecePosition playersKing) player)) > 0
+kingUnderThreat state player =
+  trace ("Player king" ++ (show playersKing))
+  (length (positionUnderAttack state (getPiecePosition playersKing) player)) > 0 && not kingMoves
   where playersKing = (filter (playerOwns player) (filter king (concat (map (\(rank, pieces) -> pieces) (board state))))) !! 0
+        kingMoves = hasValidMoves state player playersKing
 
 -- Pawn rules
 -- Rules applicable to the pawn
@@ -157,22 +211,24 @@ checkPawnMove state move player
         movedVertically = verticalMove move
         movedForward = forwardMove player move
         pieceMovedBefore = (hasPieceMoved pieceAtOrigin)
-        (enPassantPos, enPassantAttacks) = enPassantPawnCapture state move player
+        -- (enPassantPos, enPassantAttacks) = enPassantPawnCapture state move player
+-- Pawn Promotion
+promotePawn :: Rep.Player -> Rep.Move -> Bool
+promotePawn (Rep.Robot p) (_, (0, _)) = True
+promotePawn (Rep.Human p) (_, (7, _)) = True
+promotePawn _ _ =  False
 
--- Is it an enpassant ? 
+-- Is it an enpassant ?
 enPassantPawnCapture :: Rep.State -> Rep.Move -> Rep.Player -> (Rep.Position, [Rep.Move])
 enPassantPawnCapture state ((fRank, fFile),to) player
  | (isRobot player) && (steps == (2,0)) =  humanAttackingPieces 
  | (isHuman player) && (steps == (2,0)) =  robotAttackingPieces 
- | otherwise = ((9,9), [])
+ | otherwise = (to, [])
   where robotEnPassantPos = (fRank-1, fFile)
         humanEnPassantPos = (fRank+1, fFile)
-        isHuman (Rep.Human _) = True
-        isRobot (Rep.Robot _) = True
         steps = (stepsMoved((fRank, fFile),to))
         humanAttackingPieces = (robotEnPassantPos, (positionUnderAttack state robotEnPassantPos (otherPlayer player)))
         robotAttackingPieces = (robotEnPassantPos, (positionUnderAttack state humanEnPassantPos (otherPlayer player)))
-
 
 -- Rules for the rook
 -- Rook is allowed to move horizontally and vertically as long as it is 
@@ -215,7 +271,7 @@ checkBishopMove state move player
 -- A queen can move just like a bishop or rook
 checkQueenMove :: Rep.State -> Rep.Move -> Rep.Player -> Bool
 checkQueenMove state move player 
- | diagonalMove move  = checkBishopMove state move player 
+ | diagonalMove move  = checkBishopMove state move player
  | (horizontalMove move || verticalMove move ) =  checkRookMove state move player
  | otherwise = False
 
@@ -266,7 +322,7 @@ verticallyObstructed currentBoard ((fromRank, fromFile), (toRank, toFile))
  | fromRank > toRank = False `elem` (map (emptyPosition currentBoard) (zip [(fromRank-1),(fromRank-2)  .. (toRank+1)] [toFile, toFile ..]))
  | otherwise = True
 
--- Is piece diagonally obstructed?? 
+-- Is piece diagonally obstructed??
 diagonallyObstracted:: Rep.Board -> Rep.Move -> Bool
 diagonallyObstracted board ((fromRank, fromFile), (toRank, toFile))
  | topRight = False `elem` map (emptyPosition board) (zip [fromRank-1, fromRank-2 .. toRank+1] [fromFile+1 .. toFile-1])
@@ -300,18 +356,18 @@ posUnderAttackDiagonally :: Rep.State -> Rep.Position -> Rep.Player -> [Rep.Move
 posUnderAttackDiagonally state position player = validAttackingPieces
  where possibleAttackingPieces = filter (playerOwns  player) (map (getPieceOnBoard (board state)) (diagonalPositions position))
        -- Piece that make valid moves
-       validAttackingPieces = filter (\move -> (checkValidPosition (fst move))) $  map (\piece -> if validMove state piece ((getPiecePosition piece), position)  player then ((getPiecePosition piece), position) else ((9,9), position)) possibleAttackingPieces
+       validAttackingPieces = filter (\move -> (checkValidPosition (fst move))) $  map (\piece -> if validMove state piece ((getPiecePosition piece), position)  player then ((getPiecePosition piece), position) else ((-1,-1), position)) possibleAttackingPieces
 -- Position under attack horizontally
 posUnderAttackHorizontally :: Rep.State -> Rep.Position -> Rep.Player -> [Rep.Move]
 posUnderAttackHorizontally state  (rank, file) player = validAttackingMoves
   where possibleAttackPieces = filter (playerOwns player) (map (getPieceOnBoard (board state)) ((zip [rank,rank .. ] [file - 1,file - 2 .. 0]) ++ (zip [rank,rank .. ] [file + 1 .. 7])))
-        validAttackingMoves = filter (\move -> checkValidPosition (fst move) && checkValidPosition (snd move)) $ map (\piece -> if (validMove state piece ((getPiecePosition piece), (rank, file))  player) then ((getPiecePosition piece), (rank, file)) else ((9,9),(rank, file))) possibleAttackPieces
+        validAttackingMoves = filter (\move -> checkValidPosition (fst move) && checkValidPosition (snd move)) $ map (\piece -> if (validMove state piece ((getPiecePosition piece), (rank, file))  player) then ((getPiecePosition piece), (rank, file)) else ((-1,-1),(rank, file))) possibleAttackPieces
 
 -- Position under attack vertically
 posUnderAttackVertically:: Rep.State -> Rep.Position -> Rep.Player -> [Rep.Move]
 posUnderAttackVertically state  (rank, file) player = validAttackingMoves
   where possibleAttackPieces = filter (playerOwns  player) (map (getPieceOnBoard (board state)) ((zip [rank+1 .. 7] [file,file..]) ++ (zip [rank-1, rank-2 .. 0] [file, file .. ])))
-        validAttackingMoves =filter (\move -> checkValidPosition (fst move) && checkValidPosition (snd move)) $ map (\piece -> if (validMove state piece ((getPiecePosition piece), (rank, file))  player) then ((getPiecePosition piece), (rank, file)) else ((9,9),(rank, file))) possibleAttackPieces
+        validAttackingMoves =filter (\move -> checkValidPosition (fst move) && checkValidPosition (snd move)) $ map (\piece -> if (validMove state piece ((getPiecePosition piece), (rank, file))  player) then ((getPiecePosition piece), (rank, file)) else ((-1,-1),(rank, file))) possibleAttackPieces
 
 -- ###  Generate positions
 -- Generate all possible diagonal pieces relative to a position (with that position excluded)

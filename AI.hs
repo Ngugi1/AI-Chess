@@ -4,6 +4,7 @@ import qualified Validation
 import Control.Concurrent
 import Control.Monad
 import Debug.Trace
+import Graphics.Gloss
 
 -- The last human-ai move
 data LastStep = LastStep {human_move:: Rep.Move, ai_move:: Rep.Move} deriving (Show)
@@ -23,24 +24,23 @@ data Tree = Root{last_step::LastStep,  subtree:: [Tree]}
 
 
 -- Let AI select the best move to counter human move
-playAI:: Rep.State -> Depth -> Rep.Move -> IO (Either String Rep.State)
+playAI:: Rep.State -> Depth -> Rep.Move -> IO  Rep.State
 playAI state depth human_move = do
     trees <- createTree state depth
-    traceIO $ (show $ take 1 trees)
-    -- let trees = (map (visitTree) unwrappedTrees)
-    let tree_map = (map (\tree -> ((fitness tree, move tree)))) -- Get subtree and it's fitness
-    let best_fit = maximum (map (fitness) trees) -- Find the best fit
-    let best_tree:moves = filter (\tree -> (fitness tree) == best_fit) trees -- Find tree representing best move
-    let best_move = (move best_tree) -- Get the best move
-    let final_tree = (Root (LastStep human_move best_move) trees) -- Make one big tree from the many subtrees
-    let new_state = Validation.makeMove state (Rep.getPieceOnBoard (Rep.board state) (fst best_move)) (snd best_move) -- Make the move
-    let player = (Rep.player state)
-    return $ Right new_state
---  where stalemate1 = (length trees == 0 ) && length (validMoves state (Rep.otherPlayer player)) > 0  "Stalemate" -- A stalemate
---  |     stalemate2 = (length trees > 0 ) && length (validMoves state (Rep.otherPlayer player)) == 0 = do return $ Left "Stalemate" -- A stalemate
---  |     win = Validation.kingUnderThreat new_state (Rep.player new_state) && length (validMoves new_state (Rep.otherPlayer player)) == 0 = Left (show player ++ "won!")
---  | otherwise = do return $ Right new_state -- allow game to continue
+    makeAIMove state ai_player trees
+    where ai_player = (Rep.player state)
+          human_player = (Rep.otherPlayer ai_player)
 
+-- Make AI move
+makeAIMove :: Rep.State  -> Rep.Player -> [Tree] -> IO Rep.State
+makeAIMove state player [] = return $ Rep.EndState (Rep.background state) (Text "Stalemate")
+makeAIMove state player (tree:trees) = return new_state
+--  | other_player_legal_moves == 0 = return $ Rep.EndState (Rep.background state) (Text "Stalemate")
+--  | other_player_legal_moves == 0 && Validation.kingUnderThreat new_state (Rep.otherPlayer player) = return $ Rep.EndState (Rep.background state) (Text "AI Won")
+--  | otherwise = return new_state
+    where new_state = Validation.makeMove state (Rep.getPieceOnBoard (Rep.board state) (fst best_move)) (snd best_move)
+          best_move = (move tree)
+         --  other_player_legal_moves = (length $ validMoves new_state (Rep.otherPlayer player))
 
 -- Create trees
 createTree:: Rep.State -> Depth -> IO [Tree]
@@ -111,7 +111,8 @@ validMoves state player =
 -- Find all possible moves a player can make
 getPlayerPossibleMoves:: Rep.Board -> Rep.Player -> [(Rep.Piece, Rep.Move)]
 getPlayerPossibleMoves board player =
-    playerMoves
+   -- trace (show $ playerMoves)
+   playerMoves
  where
      playerPieces = Rep.getPlayerPieces board player
      playerMoves = concat $ map (\piece ->

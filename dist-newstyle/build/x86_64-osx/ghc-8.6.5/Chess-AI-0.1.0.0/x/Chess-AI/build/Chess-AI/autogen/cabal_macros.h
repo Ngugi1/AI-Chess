@@ -33,6 +33,28 @@
   (major1) == 1 && (major2) == 13 && (minor) <= 1)
 #endif /* MIN_VERSION_gloss */
 
+/* package parsec-3.1.13.0 */
+#ifndef VERSION_parsec
+#define VERSION_parsec "3.1.13.0"
+#endif /* VERSION_parsec */
+#ifndef MIN_VERSION_parsec
+#define MIN_VERSION_parsec(major1,major2,minor) (\
+  (major1) <  3 || \
+  (major1) == 3 && (major2) <  1 || \
+  (major1) == 3 && (major2) == 1 && (minor) <= 13)
+#endif /* MIN_VERSION_parsec */
+
+/* package random-1.1 */
+#ifndef VERSION_random
+#define VERSION_random "1.1"
+#endif /* VERSION_random */
+#ifndef MIN_VERSION_random
+#define MIN_VERSION_random(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  1 || \
+  (major1) == 1 && (major2) == 1 && (minor) <= 0)
+#endif /* MIN_VERSION_random */
+
 /* package regex-posix-0.96.0.0 */
 #ifndef VERSION_regex_posix
 #define VERSION_regex_posix "0.96.0.0"
