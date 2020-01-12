@@ -34,12 +34,15 @@ playAI state depth human_move = do
 -- Make AI move
 makeAIMove :: Rep.State  -> Rep.Player -> [Tree] -> IO Rep.State
 makeAIMove state player [] = return $ Rep.EndState (Rep.background state) (Text "Stalemate")
-makeAIMove state player (tree:trees) = return new_state
+makeAIMove state player trees@(t:ts) = return new_state
 --  | other_player_legal_moves == 0 = return $ Rep.EndState (Rep.background state) (Text "Stalemate")
 --  | other_player_legal_moves == 0 && Validation.kingUnderThreat new_state (Rep.otherPlayer player) = return $ Rep.EndState (Rep.background state) (Text "AI Won")
 --  | otherwise = return new_state
     where new_state = Validation.makeMove state (Rep.getPieceOnBoard (Rep.board state) (fst best_move)) (snd best_move)
-          best_move = (move tree)
+          best_fitness = maximum $ map (fitness) trees
+          best_tree = filter (\tree -> (fitness tree) == best_fitness) trees
+          best_move = move $ best_tree !! 0
+
          --  other_player_legal_moves = (length $ validMoves new_state (Rep.otherPlayer player))
 
 -- Create trees
@@ -71,14 +74,6 @@ processMove state depth ((piece ,move), mvar)
  where player = (Rep.player state)
        newState = Validation.makeMove state piece (snd move)
        minOrMax = if (Rep.color player) == "white" then maximum else maximum
-
--- visitTree:: Tree -> Tree
--- visitTree node@(Node mv player ft []) =
---     node
--- visitTree node@(Node mv player fit children) =
---     let subtrees = map (visitTree) children in
---         (Node mv player (minOrMax $ map (fitness) subtrees) children)
---     where minOrMax = if (Rep.color player) == "white" then maximum else minimum
 
 
 -- Piece value

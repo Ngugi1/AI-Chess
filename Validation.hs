@@ -47,7 +47,6 @@ makeMove state piece@(name, position@(rank,file), player, moved, img) to@(toRank
    if kingNotThreatened then makeMove finalState kRook (toRank, toFile - 1) else state
  | queenSideCastle =
    if kingNotThreatened then makeMove finalState qRook (toRank, toFile + 1) else state
---  | kingNotThreatened = finalState
  | pawn piece && isRobot currentPlayer && toRank == 0 =
    if (Rep.color player) == Rep.whitePlayer then
      makeMove state ("wQ", position, player, moved, (Rep.whiteQueen state)) to
@@ -55,15 +54,10 @@ makeMove state piece@(name, position@(rank,file), player, moved, img) to@(toRank
        makeMove state ("bQ", position, player, moved, (Rep.blackQueen state)) to
   | pawn piece && isHuman currentPlayer && toRank == 7 =
    if (Rep.color player) == Rep.whitePlayer then
-     trace "------Promoting-----"
      makeMove state ("wQ", position, player, moved, (Rep.whiteQueen state)) to
     else
        makeMove state ("bQ", position, player, moved, (Rep.blackQueen state)) to
-
-  | otherwise =
-              trace (show currentPlayer)
-              finalState
-
+  | otherwise = finalState
  where  finalState  = State (background state)
                            (save state) (load state) 
                            (depth state) 
