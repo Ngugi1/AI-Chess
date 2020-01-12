@@ -60,9 +60,9 @@ transformGame (EventKey (MouseButton LeftButton) Down _ (x,  y)) state
       return result
     -- Reset the previous step if the player had clicked outside the valid region
     | x > (-600) && x < (-400) && y < 250 && y > 200 = traceIO "Load" >> Persist.loadGame
-    | x > (-600) && x < (-400) && y < (30) && y > (-30) = traceIO "Save" >> Persist.saveHistory (Rep.history state) >> return state
+    | x > (-600) && x < (-400) && y < (30) && y > (-30) && not (Validation.isRobot (Rep.player state)) = traceIO "Save" >> Persist.saveHistory (Rep.history state) >> return state
     | x < 700 && x > 400 && y < 250 && y > 150 = traceIO "Increase" >> return (updateDifficulty state 1)
-    | x < 700 && x > 400 && y > (-30) && y < 40 = traceIO "De-Increase" >> return (updateDifficulty state (-1))
+    | x < 700 && x > 400 && y > (-30) && y < 40 = traceIO "Decrease" >> return (updateDifficulty state (-1))
     | currentPositionValid  || previousPositionValid == False =
      traceIO  (show $ (x,y)) >> return newState
     -- We don't know what the player is doing - ignore the clicks

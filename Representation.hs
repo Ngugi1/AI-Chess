@@ -211,13 +211,13 @@ initialState humanPieceColor = do
     -- Process pieces 
     let boardpieces =  concat $ map (\(rNo, rankPieces) -> rankPieces) boardRanks
     -- Prepare images and translate them to fit nicely on the board
-    let boardImages = [difficultyLabel] ++[pictures[ background, allowSave, loadBtn, reduceDepthBtn, addDepthBtn]] ++  map (\piece -> translate (translateToOriginX + (cellSize * fromIntegral (snd (getPiecePosition piece))))
+    let boardImages = [difficultyLabel] ++[ pictures[ background, allowSave , loadBtn, reduceDepthBtn, addDepthBtn]] ++  map (\piece -> translate (translateToOriginX + (cellSize * fromIntegral (snd (getPiecePosition piece))))
                                           (translateToOriginY +  (cellSize * fromIntegral (fst (getPiecePosition piece))))
                                            (getPiecePicture piece))
                                            boardpieces
     -- Return the state
-    return $ State (pictures[ background, allowSave, loadBtn, reduceDepthBtn, addDepthBtn])
-          allowSave
+    return $ State (pictures[ background, saveBtn, loadBtn, reduceDepthBtn, addDepthBtn])
+          saveBtn
           loadBtn
           3 -- Initial depth
            difficultyLabel

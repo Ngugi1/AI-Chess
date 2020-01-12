@@ -69,7 +69,8 @@ makeMove state piece@(name, position@(rank,file), player, moved, img) to@(toRank
         boardOrigin = (Rep.origin state)
         origin_x = (Rep.x_origin boardOrigin)
         origin_y = (Rep.y_origin boardOrigin)
-        boardImages = (take 2 (Rep.images state))
+        boardImages = (take 2 (Rep.images state)) ++ 
+                      [Rep.save state]
                       ++  (map (\piece -> translate (origin_x + (cellSize * fromIntegral (snd (getPiecePosition piece))))
                                           (origin_y +  (cellSize * fromIntegral (fst (getPiecePosition piece))))
                                            (getPiecePicture piece))
