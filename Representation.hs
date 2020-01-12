@@ -61,8 +61,19 @@ getPieceOnBoard board (rank, file) =
     if rank > 7 || file > 7 then
      (snd (board !! rank)) !! file
     else (snd (board !! rank)) !! file
+
+-- AI tree
+-- Tree structure - keep root distinct from other nodes
+data Tree = Node {  move:: Move,
+                    current_player:: Player,
+                    cache_player:: [Tree],
+                    fitness:: Int,
+                    subtree:: [Tree]}
+            | Empty
+             deriving (Show)
 -- State is the Board Positions occupied by both players and the the current player
 data State = State {
+                    cache:: [Tree],
                     background:: Picture,
                     save:: Picture,
                     load:: Picture,
@@ -214,7 +225,9 @@ initialState humanPieceColor = do
                                            (getPiecePicture piece))
                                            boardpieces
     -- Return the state
-    return $ State (pictures[ background, saveBtn, loadBtn, reduceDepthBtn, addDepthBtn])
+    return $ State 
+          [] -- Cache empty initially
+          (pictures[ background, saveBtn, loadBtn, reduceDepthBtn, addDepthBtn])
           saveBtn
           loadBtn
           3 -- Initial depth

@@ -31,7 +31,8 @@ getHumanPlayerColor (x, y)
 -- Update the difficulty of the game
 updateDifficulty :: Rep.State -> Int -> Rep.State
 updateDifficulty state value =
-   Rep.State (Rep.background state) (Rep.save state) (Rep.load state)
+   Rep.State (Rep.cache state)
+            (Rep.background state) (Rep.save state) (Rep.load state)
             newDepth
             difficultyLabel
             (Rep.origin state)
@@ -78,7 +79,8 @@ transformGame (EventKey (MouseButton LeftButton) Down _ (x,  y)) state
         currentPlayerOwnsCurrentPosition =  Rep.playerOwns (Rep.player state) $ Rep.getPieceOnBoard (Rep.board state) (rank,file)
         currentPlayerOwnsPreviousPosition = Rep.playerOwns (Rep.player state) pieceToMove
         legalMove = Validation.validMove state pieceToMove (previousPosition,(rank, file)) (Rep.player state)
-        newState = Rep.State (Rep.background state) 
+        newState = Rep.State (Rep.cache state)
+                             (Rep.background state) 
                              (Rep.save state) (Rep.load state)
                              (Rep.depth state) (Rep.difficultyValue state)
                              (Rep.origin state) (rank, file) 

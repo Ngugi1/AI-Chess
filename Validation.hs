@@ -58,7 +58,8 @@ makeMove state piece@(name, position@(rank,file), player, moved, img) to@(toRank
     else
        makeMove state ("bQ", position, player, moved, (Rep.blackQueen state)) to
   | otherwise = finalState
- where  finalState  = State (background state)
+ where  finalState  = State (cache state)
+                           (background state)
                            (save state) (load state) 
                            (depth state) 
                            (difficultyValue state)

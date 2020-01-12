@@ -6,22 +6,12 @@ import Control.Monad
 import Debug.Trace
 import Graphics.Gloss
 
--- The last human-ai move
-data LastStep = LastStep {human_move:: Rep.Move, ai_move:: Rep.Move} deriving (Show)
 -- Dept of a tree
 type Depth = Int
 
 -- Value big enough to rep infinity
 infinity:: Int
 infinity = 10000000
-
--- Tree structure - keep root distinct from other nodes
-data Tree = Root{last_step::LastStep,  subtree:: [Tree]}
-            | Node {move:: Rep.Move,
-                    player:: Rep.Player,
-                    fitness:: Int,
-                    subtree:: [Tree]} deriving (Show)
-
 
 -- Let AI select the best move to counter human move
 playAI:: Rep.State -> Depth -> Rep.Move -> IO  Rep.State
@@ -31,22 +21,41 @@ playAI state depth human_move = do
     where ai_player = (Rep.player state)
           human_player = (Rep.otherPlayer ai_player)
 
+-- Prune cache tree
+pruneCacheTree:: Rep.Tree -> [Rep.Tree]
+pruneCacheTree (Rep.Node _ _ _ _ subtree) = subtree
+
 -- Make AI move
-makeAIMove :: Rep.State  -> Rep.Player -> [Tree] -> IO Rep.State
+makeAIMove :: Rep.State  -> Rep.Player -> [Rep.Tree] -> IO Rep.State
 makeAIMove state player [] = return $ Rep.EndState (Rep.background state) (Text "Stalemate")
-makeAIMove state player trees@(t:ts) = return new_state
+makeAIMove state player@(Rep.Robot colour) trees@(t:ts) = 
+    return new_state
 --  | other_player_legal_moves == 0 = return $ Rep.EndState (Rep.background state) (Text "Stalemate")
 --  | other_player_legal_moves == 0 && Validation.kingUnderThreat new_state (Rep.otherPlayer player) = return $ Rep.EndState (Rep.background state) (Text "AI Won")
 --  | otherwise = return new_state
-    where new_state = Validation.makeMove state (Rep.getPieceOnBoard (Rep.board state) (fst best_move)) (snd best_move)
-          best_fitness = maximum $ map (fitness) trees
-          best_tree = filter (\tree -> (fitness tree) == best_fitness) trees
-          best_move = move $ best_tree !! 0
-
-         --  other_player_legal_moves = (length $ validMoves new_state (Rep.otherPlayer player))
-
+    where updated_state = Validation.makeMove state (Rep.getPieceOnBoard (Rep.board state) (fst best_move)) (snd best_move)
+          best_fitness = 
+              if (colour == Rep.whitePlayer) 
+            then  maximum $ map (Rep.fitness) trees 
+            else  minimum $ map (Rep.fitness) trees
+          best_tree = filter (\tree -> (Rep.fitness tree) == best_fitness) trees
+          best_move = Rep.move $ best_tree !! 0
+          new_state = Rep.State (pruneCacheTree (best_tree !! 0)) -- Keep all the children - moves which human can make then AI and so on
+                           (Rep.background updated_state)
+                           (Rep.save updated_state) 
+                           (Rep.load updated_state) 
+                           (Rep.depth updated_state) 
+                           (Rep.difficultyValue updated_state)
+                           (Rep.origin updated_state)
+                           ((-1),(-1)) (Rep.offset updated_state) 
+                           (Rep.images updated_state) 
+                           (Rep.whiteQueen updated_state) 
+                           (Rep.blackQueen updated_state) (Rep.otherPlayer player) 
+                           (Rep.center updated_state)
+                           (Rep.history updated_state)
+                           (Rep.board updated_state)
 -- Create trees
-createTree:: Rep.State -> Depth -> IO [Tree]
+createTree:: Rep.State -> Depth -> IO [Rep.Tree]
 createTree state 0 = return $  []
 createTree state depth  = do
     mvars <- replicateM (length moves) newEmptyMVar
@@ -57,23 +66,37 @@ createTree state depth  = do
     mapM readMVar mvars >>= return
     where moves = validMoves state (Rep.player state)
 
+-- Search if a move already exists in the cache
+getCachedMove :: Rep.State -> Rep.Move -> Rep.Player -> Maybe Rep.Tree
+getCachedMove state move player =
+    case possible_hits of 
+        [] -> Nothing
+        hit:hits -> Just hit
+    where cached = (Rep.cache state)
+          possible_hits = filter (\tree -> (player == (Rep.current_player tree) && (Rep.move tree) == move)) cached
+
 -- Based on the new state after a move, determine the fitness value of a node
-processMove:: Rep.State -> Depth -> ((Rep.Piece, Rep.Move), MVar Tree)  -> IO ()
-processMove state depth ((piece ,move), mvar)
+processMove:: Rep.State -> Depth -> ((Rep.Piece, Rep.Move), MVar Rep.Tree)  -> IO ()
+processMove state depth ((piece , move), mvar)
+ |  fst $ cache_hit = do  putMVar mvar (snd  cache_hit) -- first check if a move is available in the cache
  | Validation.checkStalemate state player = do
-    putMVar mvar $ Node move player 0 []
+    putMVar mvar $ Rep.Node move player [] 0 []
  | Validation.kingUnderThreat state player && (length $ (validMoves state player)) == 0 =  do
     if (Rep.color player) == Rep.whitePlayer -- Black checked white
-    then  putMVar mvar $ Node move player (-infinity) []  -- No more children for this state
-    else putMVar mvar $ Node move player infinity []
+    then  putMVar mvar $ Rep.Node move player [] (-infinity) []  -- No more children for this state
+    else putMVar mvar $ Rep.Node move player [] infinity []
  | otherwise = do
     subtrees <- (createTree newState (depth - 1))
     case subtrees of
-        [] -> putMVar mvar $ Node move player (getFitness player newState) subtrees
-        child:children -> putMVar mvar $ (Node move player (minOrMax $ map (fitness) subtrees) subtrees)
+        [] -> putMVar mvar $ Rep.Node move player [] (getFitness player newState) subtrees
+        child:children -> putMVar mvar $ (Rep.Node move player [] (minOrMax $ map (Rep.fitness) subtrees) subtrees)
  where player = (Rep.player state)
        newState = Validation.makeMove state piece (snd move)
        minOrMax = if (Rep.color player) == "white" then maximum else maximum
+       cache_hit = case getCachedMove state move player of
+                        Nothing -> (False, Rep.Empty)
+                        (Just node) -> (True, node) 
+
 
 
 -- Piece value
