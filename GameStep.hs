@@ -31,7 +31,6 @@ getHumanPlayerColor (x, y)
 -- Update the difficulty of the game
 updateDifficulty :: Rep.State -> Int -> Rep.State
 updateDifficulty state value =
-  trace (show $ ((Rep.depth state)  + value ))
    Rep.State (Rep.background state) (Rep.save state) (Rep.load state)
             newDepth
             difficultyLabel
@@ -56,17 +55,19 @@ transformGame (EventKey (MouseButton LeftButton) Down _ (x,  y)) state
     | previousPositionValid && currentPositionValid &&
       currentPlayerOwnsPreviousPosition &&
       currentPlayerOwnsCurrentPosition == False && legalMove = do
+      -- traceIO (show (rank, file) ++ (show (Rep.player state)))
+      let p = Validation.makeMove state pieceToMove (rank, file)
+
       result <- AI.playAI (Validation.makeMove state pieceToMove (rank, file)) (Rep.depth state) ((Rep.getPiecePosition pieceToMove), (rank,file))
       return result
     -- Reset the previous step if the player had clicked outside the valid region
-    | x > (-600) && x < (-400) && y < 250 && y > 200 = traceIO "Load" >> Persist.loadGame
-    | x > (-600) && x < (-400) && y < (30) && y > (-30) && not (Validation.isRobot (Rep.player state)) = traceIO "Save" >> Persist.saveHistory (Rep.history state) >> return state
-    | x < 700 && x > 400 && y < 250 && y > 150 = traceIO "Increase" >> return (updateDifficulty state 1)
-    | x < 700 && x > 400 && y > (-30) && y < 40 = traceIO "Decrease" >> return (updateDifficulty state (-1))
-    | currentPositionValid  || previousPositionValid == False =
-     traceIO  (show $ (x,y)) >> return newState
+    | x > (-600) && x < (-400) && y < 250 && y > 200 = Persist.loadGame
+    | x > (-600) && x < (-400) && y < (30) && y > (-30) && not (Validation.isRobot (Rep.player state)) = Persist.saveHistory (Rep.history state) >> return state
+    | x < 700 && x > 400 && y < 250 && y > 150 =  return (updateDifficulty state 1)
+    | x < 700 && x > 400 && y > (-30) && y < 40 =  return (updateDifficulty state (-1))
+    | currentPositionValid  || previousPositionValid == False = return newState
     -- We don't know what the player is doing - ignore the clicks
-    | otherwise = traceIO  (show $ (x,y)) >> return state
+    | otherwise = return state
     where
         rank = (coordinateToPosition y)
         file = (coordinateToPosition x)

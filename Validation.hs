@@ -47,9 +47,24 @@ makeMove state piece@(name, position@(rank,file), player, moved, img) to@(toRank
    if kingNotThreatened then makeMove finalState kRook (toRank, toFile - 1) else state
  | queenSideCastle =
    if kingNotThreatened then makeMove finalState qRook (toRank, toFile + 1) else state
- | kingNotThreatened = finalState
- | otherwise = state
- where  finalState  = State (background state) 
+--  | kingNotThreatened = finalState
+ | pawn piece && isRobot currentPlayer && toRank == 0 =
+   if (Rep.color player) == Rep.whitePlayer then
+     makeMove state ("wQ", position, player, moved, (Rep.whiteQueen state)) to
+    else
+       makeMove state ("bQ", position, player, moved, (Rep.blackQueen state)) to
+  | pawn piece && isHuman currentPlayer && toRank == 7 =
+   if (Rep.color player) == Rep.whitePlayer then
+     trace "------Promoting-----"
+     makeMove state ("wQ", position, player, moved, (Rep.whiteQueen state)) to
+    else
+       makeMove state ("bQ", position, player, moved, (Rep.blackQueen state)) to
+
+  | otherwise =
+              trace (show currentPlayer)
+              finalState
+
+ where  finalState  = State (background state)
                            (save state) (load state) 
                            (depth state) 
                            (difficultyValue state)
@@ -60,8 +75,8 @@ makeMove state piece@(name, position@(rank,file), player, moved, img) to@(toRank
                            (Rep.blackQueen state) (otherPlayer player) 
                            (center state) newHistory newboard
         kingNotThreatened = not (kingUnderThreat finalState (Rep.player state))
-        currentPlayer = (Rep.player state)
         currentBoard = (Rep.board state)
+        currentPlayer = (Rep.player state)
         move = (position, to)
         newHistory = (Rep.history state)  ++ (moveType piece move state)
         newboard = (map (replacePiece to (name, to, player, True, img)) (map (removePiece position) (board state)))
@@ -198,7 +213,6 @@ queenSideCastling _ _ piece _ = (False, piece)
 -- Check if king is under threat - being attacked
 kingUnderThreat :: Rep.State -> Rep.Player -> Bool
 kingUnderThreat state player =
-  trace ("Player king" ++ (show playersKing))
   (length (positionUnderAttack state (getPiecePosition playersKing) player)) > 0 && not kingMoves
   where playersKing = (filter (playerOwns player) (filter king (concat (map (\(rank, pieces) -> pieces) (board state))))) !! 0
         kingMoves = hasValidMoves state player playersKing

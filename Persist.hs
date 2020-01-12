@@ -41,14 +41,12 @@ intFile _ = 9
 -- Find pawn to move
 pawnToMove ::  Rep.Player -> Rep.State -> Rep.Position -> Rep.Piece
 pawnToMove  (Rep.Robot _) state (rank, file) = 
-    -- trace ("robot" ++ (show all))
     Rep.getPieceOnBoard (Rep.board state) position
     where all@position:positions = [(r, f) | f <- [file, file ..],
                                     r <- [rank + 1, rank + 2 .. 6],
                                     (Rep.pawn $ Rep.getPieceOnBoard (Rep.board state) (r, f)) == True]
 
 pawnToMove  (Rep.Human _) state (rank, file) = 
-    -- trace ("Human" ++ (show all))
     Rep.getPieceOnBoard (Rep.board state) position
     where all@position:positions = [(r, f) | f <- [file, file ..],
                                     r <- [rank - 1, rank - 2 .. 1], 
@@ -60,7 +58,6 @@ restoreGame:: [CP.Step] -> Rep.State -> Rep.State
 restoreGame [] state = state
 -- Restore a normal move
 restoreGame ((CP.Move (CP.DIS (CP.Square fromFile fromRank)) (CP.Square toFile toRank)):steps)  state =
-    trace ("Move" ++ (show $ (fromFile, fromRank)))
     restoreGame steps updatedState
     where updatedState = Validation.makeMove
                             state
@@ -69,7 +66,6 @@ restoreGame ((CP.Move (CP.DIS (CP.Square fromFile fromRank)) (CP.Square toFile t
 
 -- Restore Pawn move
 restoreGame ((CP.PawnMove (CP.Square toFile toRank) promote):steps)  state =
-    trace ("Pawn" ++ (show $ (toFile, toRank)) ++ (show piece))
     restoreGame steps updatedState
     where piece = pawnToMove (Rep.player state) state (toRank, intFile toFile)
           updatedState = Validation.makeMove state piece (toRank, intFile toFile)

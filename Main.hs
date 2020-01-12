@@ -6,7 +6,9 @@ import Graphics.Gloss.Interface.IO.Game
 import Graphics.Gloss.Data.ViewPort
 import Graphics.Gloss.Interface.Environment
 import Debug.Trace
+import Control.Concurrent
 
 main:: IO ()
 main = do
     playIO FullScreen white 30 (Rep.ChooseColor) GStep.gameAsPicture GStep.transformGame GStep.updateGame
+    return ()

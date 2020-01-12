@@ -64,14 +64,13 @@ processMove state depth ((piece ,move), mvar)
     then  putMVar mvar $ Node move player (-infinity) []  -- No more children for this state
     else putMVar mvar $ Node move player infinity []
  | otherwise = do
-    -- traceIO (show $ move)
     subtrees <- (createTree newState (depth - 1))
     case subtrees of
         [] -> putMVar mvar $ Node move player (getFitness player newState) subtrees
         child:children -> putMVar mvar $ (Node move player (minOrMax $ map (fitness) subtrees) subtrees)
  where player = (Rep.player state)
        newState = Validation.makeMove state piece (snd move)
-       minOrMax = if (Rep.color player) == "white" then maximum else minimum
+       minOrMax = if (Rep.color player) == "white" then maximum else maximum
 
 -- visitTree:: Tree -> Tree
 -- visitTree node@(Node mv player ft []) =
@@ -94,13 +93,11 @@ pieceValue piece
 
  --Get fitness based on state
 getFitness:: Rep.Player -> Rep.State -> Int
-getFitness player state
- | (Rep.color player) == "white" = (sum $ map (pieceValue) pieces0) - (sum $ map (pieceValue) pieces1)
- | otherwise = (sum $ map (pieceValue) pieces1) - (sum $ map (pieceValue) pieces0)
+getFitness player state = (sum $ map (pieceValue) pieces0) - (sum $ map (pieceValue) pieces1)
  where pieces0 = Rep.getPlayerPieces (Rep.board state) player
        pieces1 =  Rep.getPlayerPieces (Rep.board state) (Rep.otherPlayer player)
 -- Find all legal moves a player can make
-validMoves:: Rep.State -> Rep.Player -> [(Rep.Piece, Rep.Move)] 
+validMoves:: Rep.State -> Rep.Player -> [(Rep.Piece, Rep.Move)]
 validMoves state player =
  legalMoves
  where
@@ -111,7 +108,6 @@ validMoves state player =
 -- Find all possible moves a player can make
 getPlayerPossibleMoves:: Rep.Board -> Rep.Player -> [(Rep.Piece, Rep.Move)]
 getPlayerPossibleMoves board player =
-   -- trace (show $ playerMoves)
    playerMoves
  where
      playerPieces = Rep.getPlayerPieces board player

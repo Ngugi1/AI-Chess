@@ -59,7 +59,6 @@ getPieceOnBoard:: Board -> Position -> Piece
 
 getPieceOnBoard board (rank, file) =
     if rank > 7 || file > 7 then
-     trace ("Getting " ++ (show (rank, file)))
      (snd (board !! rank)) !! file
     else (snd (board !! rank)) !! file
 -- State is the Board Positions occupied by both players and the the current player
@@ -186,7 +185,6 @@ initialState humanPieceColor = do
     let addDepthBtn = translate (400) 200 $ scale 0.25 0.25 $ Text "Increase Difficulty"
     let reduceDepthBtn = translate (400) 0 $ scale 0.25 0.25 $ Text "Reduce Difficulty"
     let allowSave = if humanPieceColor == White then blank else saveBtn
-    traceIO (show humanPieceColor)
     -- Determine the AI color and human Color
     let human_color = if (humanPieceColor == White) then whitePlayer else blackPlayer
 
