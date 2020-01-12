@@ -57,7 +57,7 @@ type Board = [(Rank, [Piece])]
 -- Get Piece on a board
 getPieceOnBoard:: Board -> Position -> Piece
 
-getPieceOnBoard board (rank, file) = 
+getPieceOnBoard board (rank, file) =
     if rank > 7 || file > 7 then
      trace ("Getting " ++ (show (rank, file)))
      (snd (board !! rank)) !! file
@@ -67,6 +67,8 @@ data State = State {
                     background:: Picture,
                     save:: Picture,
                     load:: Picture,
+                    depth:: Int,
+                    difficultyValue:: Picture,
                     origin:: Origin,
                     previousSelection:: Position,
                     offset :: Offset,
@@ -144,7 +146,6 @@ noPiece = "."
 emptyPieces = replicate 8 noPiece
 
 
-
 makeRank:: PlayerColor -> Int -> [Picture] -> [Picture] -> Picture -> Picture -> (Rank, [Piece])
 makeRank White rank whitePics blackPics whitePawnPic blackPawnPic
     | rank == 0 = (0 , (DL.zip5 whitePieceNames (zip [0,0..] [0..7]) (replicate 8 (Human whitePlayer)) (replicate 8 False) whitePics))
@@ -181,6 +182,9 @@ initialState humanPieceColor = do
 
     let loadBtn = translate (-600) 200 $ scale 0.25 0.25 $ Text "Load State"
     let saveBtn = translate (-600) 0 $ scale 0.25 0.25 $ Text "Save State"
+    let difficultyLabel = translate 0 400 $ scale 0.25 0.25 $ Text "Difficulty: 3"
+    let addDepthBtn = translate (400) 200 $ scale 0.25 0.25 $ Text "Increase Difficulty"
+    let reduceDepthBtn = translate (400) 0 $ scale 0.25 0.25 $ Text "Reduce Difficulty"
     let allowSave = if humanPieceColor == White then blank else saveBtn
     traceIO (show humanPieceColor)
     -- Determine the AI color and human Color
@@ -190,12 +194,12 @@ initialState humanPieceColor = do
     let boardCenterX =  fromIntegral $ x_axis center :: Float -- find the center of the board
     let boardCenterY =  fromIntegral $ y_axis center :: Float
     let originCenterX = boardCenterX - (boardSize / 2)
-    
+
     -- Offsets come in handy when translating images
     let originCenterY = boardCenterY - (boardSize / 2)
     let boardOffsetX = (fromIntegral width) - originCenterX
     let boardOffsetY = (fromIntegral height) - originCenterY
-    
+
     -- Keep the origin used for drawing and not the mathematical origin
     -- This is due to how gloss places elements
     let drawingOriginCenterX = (cellSize / 2 ) + originCenterX
@@ -207,14 +211,16 @@ initialState humanPieceColor = do
     -- Process pieces 
     let boardpieces =  concat $ map (\(rNo, rankPieces) -> rankPieces) boardRanks
     -- Prepare images and translate them to fit nicely on the board
-    let boardImages = [background, allowSave, loadBtn] ++  map (\piece -> translate (translateToOriginX + (cellSize * fromIntegral (snd (getPiecePosition piece))))
+    let boardImages = [difficultyLabel] ++[pictures[ background, allowSave, loadBtn, reduceDepthBtn, addDepthBtn]] ++  map (\piece -> translate (translateToOriginX + (cellSize * fromIntegral (snd (getPiecePosition piece))))
                                           (translateToOriginY +  (cellSize * fromIntegral (fst (getPiecePosition piece))))
                                            (getPiecePicture piece))
                                            boardpieces
     -- Return the state
-    return $ State (pictures [background])
+    return $ State (pictures[ background, allowSave, loadBtn, reduceDepthBtn, addDepthBtn])
           allowSave
           loadBtn
+          3 -- Initial depth
+           difficultyLabel
           (Origin translateToOriginX translateToOriginY)
           ((-1), (-1)) -- This is used to know when the human player wants to make a move, -1,-1 means no piece selected yet
           (Offset boardOffsetX boardOffsetY)

@@ -49,7 +49,16 @@ makeMove state piece@(name, position@(rank,file), player, moved, img) to@(toRank
    if kingNotThreatened then makeMove finalState qRook (toRank, toFile + 1) else state
  | kingNotThreatened = finalState
  | otherwise = state
- where  finalState  = State (background state) (save state) (load state) (origin state)  ((-1),(-1)) (offset state) boardImages (Rep.whiteQueen state) (Rep.blackQueen state) (otherPlayer player) (center state) newHistory newboard
+ where  finalState  = State (background state) 
+                           (save state) (load state) 
+                           (depth state) 
+                           (difficultyValue state)
+                           (origin state)
+                           ((-1),(-1)) (offset state) 
+                           boardImages 
+                           (Rep.whiteQueen state) 
+                           (Rep.blackQueen state) (otherPlayer player) 
+                           (center state) newHistory newboard
         kingNotThreatened = not (kingUnderThreat finalState (Rep.player state))
         currentPlayer = (Rep.player state)
         currentBoard = (Rep.board state)
@@ -60,7 +69,7 @@ makeMove state piece@(name, position@(rank,file), player, moved, img) to@(toRank
         boardOrigin = (Rep.origin state)
         origin_x = (Rep.x_origin boardOrigin)
         origin_y = (Rep.y_origin boardOrigin)
-        boardImages = [Rep.background state, Rep.save state, Rep.load state] 
+        boardImages = (take 2 (Rep.images state))
                       ++  (map (\piece -> translate (origin_x + (cellSize * fromIntegral (snd (getPiecePosition piece))))
                                           (origin_y +  (cellSize * fromIntegral (fst (getPiecePosition piece))))
                                            (getPiecePicture piece))
